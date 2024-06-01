@@ -36,15 +36,11 @@ if __name__ == "__main__":
     train_raw = load_data(os.path.join('dataset','laptop14_train.json'))
     test_raw = load_data(os.path.join('dataset','laptop14_test.json'))
 
-    print(len(train_raw))
-
     portion = 0.10
 
     dev_raw = random.sample(train_raw, int(len(train_raw) * portion))
     dev_set = set(map(json.dumps, dev_raw))
     train_raw = [entry for entry in train_raw if json.dumps(entry) not in dev_set]
-
-    print(len(train_raw), len(dev_raw)) 
 
     corpus = train_raw + test_raw
 

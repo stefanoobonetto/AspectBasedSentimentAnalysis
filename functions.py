@@ -61,7 +61,7 @@ def eval_loop(data, criterion_slots, model, lang):
                 for id_el, elem in enumerate(to_decode):
                     tmp_seq.append((utterance[id_el], lang.id2slot[elem]))
                 hyp_slots.append(tmp_seq)
-                print(to_decode)
+                # print(to_decode)
 
 
         tmp_ref = []
@@ -92,6 +92,8 @@ def eval_loop(data, criterion_slots, model, lang):
     except Exception as ex:
         # Sometimes the model predicts a class that is not in REF
         print("Warning:", ex)
+
+
         ref_s = set([x[1] for x in ref_slots])
         hyp_s = set([x[1] for x in hyp_slots])
         print(hyp_s.difference(ref_s))
@@ -105,23 +107,26 @@ def eval_loop(data, criterion_slots, model, lang):
 
 def evaluate(gold_data, pred_data):
     assert len(gold_data) == len(pred_data)
-    n_samples = len(gold_data)
+    n_sent = len(gold_data)
 
     all_gold_slots = []
     all_pred_slots = []
 
-    for i in range(n_samples):
-        gold = gold_data[i]
-        pred = pred_data[i]
-        utterance = gold['utterance']
-        gold_slots = gold['slots'].split()
-        pred_slots = pred['slots'].split()
+    for i in range(n_sent):
+        print("gold_data: ", gold_data[i])
+        for j, gold in enumerate(gold_data[i]):
+            pred = pred_data[i]
+            utterance = gold[0]
+            print("\nutterance: ", utterance)
+            gold_slots = gold[1]
+            print(gold_slots)
+            pred_slots = pred[j][1]
 
-        for id, tag, utt, in zip(enumerate(gold_slots), utterance):
-            if tag != 'pad' and utt != 'CLS' and utt != '[SEP]':
-                all_gold_slots.append(tag)
-                all_pred_slots.append(pred_slots[id])
-
+            for id, tag, utt, in zip(enumerate(gold_slots), utterance):
+                if tag != 'pad' and utt != 'CLS' and utt != '[SEP]':
+                    all_gold_slots.append(tag)
+                    all_pred_slots.append(pred_slots[id])
+        print("\n\n")
         # Filter out the 'X' labels for evaluation
         # filtered_gold_slots = [tag for tag, utt in zip(gold_slots, utterance) if tag != 'X' and utt != '[CLS]' and utt != '[S]']
         # filtered_pred_slots = [tag for tag in pred_slots if tag != 'X']

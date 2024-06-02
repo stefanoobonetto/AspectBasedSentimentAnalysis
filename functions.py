@@ -16,7 +16,7 @@ def train_loop(data, optimizer, criterion_slots, model, clip=5):
         # print(sample['utterances'], sample['attention_mask'], sample['token_type_ids'])
         slots = model(sample['utterances'], attentions=sample['attention_mask'], token_type_ids=sample['token_type_ids'])
 
-        # print("shape gt: ", sample['y_slots'].shape, ", shape pred: ", slots.shape)
+        # print("shape ground_truth: ", sample['y_slots'].shape, ", shape pred: ", slots.shape)
 
         loss = criterion_slots(slots, sample['y_slots'])
 
@@ -48,13 +48,13 @@ def eval_loop(data, criterion_slots, model, lang):
 
             for id_seq, seq in enumerate(output_slots):
                 
-                length = sample['slots_len'].tolist()[id_seq]
-                utt_ids = sample['utterance'][id_seq][:length].tolist()
-                gt_ids = sample['y_slots'][id_seq].tolist()
-                gt_slots = [lang.id2slot[elem] for elem in gt_ids[:length]]           
+                lenground_truthh = sample['slots_len'].tolist()[id_seq]
+                utt_ids = sample['utterance'][id_seq][:lenground_truthh].tolist()
+                ground_truth_ids = sample['y_slots'][id_seq].tolist()
+                ground_truth_slots = [lang.id2slot[elem] for elem in ground_truth_ids[:lenground_truthh]]           
                 utterance = tokenizer.convert_ids_to_tokens(utt_ids)
-                to_decode = seq[:length].tolist()
-                ref_slots.append([(utterance[id_el], elem) for id_el, elem in enumerate(gt_slots)])
+                to_decode = seq[:lenground_truthh].tolist()
+                ref_slots.append([(utterance[id_el], elem) for id_el, elem in enumerate(ground_truth_slots)])
                 tmp_seq = []
                 for id_el, elem in enumerate(to_decode):
                     tmp_seq.append((utterance[id_el], lang.id2slot[elem]))
@@ -80,23 +80,6 @@ def eval_loop(data, criterion_slots, model, lang):
         ref_slots = tmp_ref_tot
         hyp_slots = tmp_hyp_tot
 
-        utt = ""
-        ref = ""
-        hyp = ""
-
-        for i in range(len(ref_slots[0])):
-            ref += ref_slots[0][i][1] 
-            ref += " "
-            utt += ref_slots[0][i][0]
-            utt += " "
-            hyp += hyp_slots[0][i][1]
-            hyp += " "
-        print(utt)
-        print(ref)
-        print(hyp)
-
-        print("\n\n")
-
     try:            
         
         results = evaluate(tmp_ref_tot, tmp_hyp_tot)
@@ -115,6 +98,7 @@ def eval_loop(data, criterion_slots, model, lang):
     
     # print("report_intent: ", report_intent)
     return results, loss_array
+
 
 def evaluate(ground_truth, predicted):
     mlb = MultiLabelBinarizer()

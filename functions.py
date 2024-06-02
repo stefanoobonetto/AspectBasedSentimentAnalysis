@@ -4,6 +4,7 @@
 import torch.nn as nn
 import torch
 from sklearn.metrics import precision_recall_fscore_support
+from sklearn.preprocessing import MultiLabelBinarizer
 
 from transformers import BertTokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased") # Download the tokenizer
@@ -36,7 +37,7 @@ def eval_loop(data, criterion_slots, model, lang):
     
     ref_slots = []
     hyp_slots = []
-    #softmax = nn.Softmax(dim=1) # Use Softmax if you need the actual probability
+
     with torch.no_grad(): # It used to avoid the creation of computational graph
         for sample in data:
             slots = model(sample['utterances'], attentions=sample['attention_mask'], token_type_ids=sample['token_type_ids'])
@@ -61,8 +62,6 @@ def eval_loop(data, criterion_slots, model, lang):
                 for id_el, elem in enumerate(to_decode):
                     tmp_seq.append((utterance[id_el], lang.id2slot[elem]))
                 hyp_slots.append(tmp_seq)
-                # print(to_decode)
-
 
         tmp_ref = []
         tmp_hyp = []
@@ -84,58 +83,92 @@ def eval_loop(data, criterion_slots, model, lang):
         ref_slots = tmp_ref_tot
         hyp_slots = tmp_hyp_tot
 
+        utt = ""
+        ref = ""
+        hyp = ""
+
+        for i in range(len(ref_slots[0])):
+            ref += ref_slots[0][i][1] 
+            ref += " "
+            utt += ref_slots[0][i][0]
+            utt += " "
+            hyp += hyp_slots[0][i][1]
+            hyp += " "
+        print(utt)
+        print(ref)
+        print(hyp)
+
+        print("\n\n")
+
     try:            
+        
         results = evaluate(tmp_ref_tot, tmp_hyp_tot)
 
-        # print("results: ", results)
-        
     except Exception as ex:
-        # Sometimes the model predicts a class that is not in REF
-        print("Warning:", ex)
 
+        print("Warning:", ex)
 
         ref_s = set([x[1] for x in ref_slots])
         hyp_s = set([x[1] for x in hyp_slots])
         print(hyp_s.difference(ref_s))
-        results =  {'precision' : 0, 'recall' : 0, 'f1' : 0} 
+        results = {"f1" :0}
+
     # for elem in report_intent:
         # print(elem, report_intent[elem], "\n\n")
     
     # print("report_intent: ", report_intent)
     return results, loss_array
 
-
 def evaluate(gold_data, pred_data):
+    mlb = MultiLabelBinarizer()
+
+    # Transform gold and predicted data into binary arrays
+    gold_labels = mlb.fit_transform(gold_data)
+    pred_labels = mlb.transform(pred_data)
+
+    print("\n\n----------------> DATA: ", pred_data[0], "\n (len: ", len(pred_data[0]), ")\n")
+    print("----------------> LABELS:", pred_labels[0],"\n (len: ", len(pred_labels[0]), ")\n")
+
+    print("-"*89)
+
+    print("\n\n----------------> DATA: ", gold_data[0], "\n (len: ", len(gold_data[0]), ")\n")
+    print("----------------> LABELS:", gold_labels[0],"\n (len: ", len(gold_labels[0]), ")\n")
+
+    precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='macro')
+
+    return {'precision': precision, 'recall': recall, 'f1': f1}
+
+
+def evaluate_(gold_data, pred_data):
     assert len(gold_data) == len(pred_data)
     n_sent = len(gold_data)
 
-    all_gold_slots = []
-    all_pred_slots = []
+    # all_gold_slots = []
+    # all_pred_slots = []
 
-    for i in range(n_sent):
-        print("gold_data: ", gold_data[i])
-        for j, gold in enumerate(gold_data[i]):
-            pred = pred_data[i]
-            utterance = gold[0]
-            print("\nutterance: ", utterance)
-            gold_slots = gold[1]
-            print(gold_slots)
-            pred_slots = pred[j][1]
+    # for i in range(n_sent):
+        
+    #     for j, gold in enumerate(gold_data[i]):
+    #         pred = pred_data[i]
+    #         utterance = gold[0]
+    #         # print("\nutterance: ", utterance)
+    #         gold_slots = gold[1]
+    #         # print(gold_slots)
+    #         pred_slots = pred[j][1]
 
-            for id, tag, utt, in zip(enumerate(gold_slots), utterance):
-                if tag != 'pad' and utt != 'CLS' and utt != '[SEP]':
-                    all_gold_slots.append(tag)
-                    all_pred_slots.append(pred_slots[id])
-        print("\n\n")
-        # Filter out the 'X' labels for evaluation
-        # filtered_gold_slots = [tag for tag, utt in zip(gold_slots, utterance) if tag != 'X' and utt != '[CLS]' and utt != '[S]']
-        # filtered_pred_slots = [tag for tag in pred_slots if tag != 'X']
-
-        # all_gold_slots.extend(filtered_gold_slots)
-        # all_pred_slots.extend(filtered_pred_slots)
-
+    #         # for id, tag, utt, in zip(enumerate(gold_slots), utterance):
+    #         #     if tag != 'pad' and utt != 'CLS' and utt != '[SEP]':
+    #         #         all_gold_slots.append(tag)
+    #         #         all_pred_slots.append(pred_slots[id])
+    #     print("GT: ", all_gold_slots[0])
+    #     print("PRED: ", all_pred_slots[0])
+    #     print("\n\n")
+        
     # Calculate precision, recall, and f1
-    precision, recall, f1, _ = precision_recall_fscore_support(all_gold_slots, all_pred_slots, average='macro')
+    # precision, recall, f1, _ = precision_recall_fscore_support(all_gold_slots, all_pred_slots, average='macro')
+    precision, recall, f1, _ = precision_recall_fscore_support(gold_data, pred_data, average='macro')
+
+    print("precision: ", precision, ", recall: ", recall, ", f1: ", f1)
     return {'precision' : precision, 'recall' : recall, 'f1' : f1}
 
 

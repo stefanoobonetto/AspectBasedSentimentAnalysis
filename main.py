@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     hid_size = 768
 
-    lr = 0.00001                                   # learning rate
+    lr = 0.0001                                   # learning rate
     clip = 5                                       # Clip the gradients
 
     if not os.path.exists(os.path.join('dataset', 'laptop14_train.json')):

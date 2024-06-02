@@ -1,7 +1,3 @@
-# This file is used to run your functions and print the results
-# Please write your fuctions or classes in the functions.py
-
-# Import everything from functions.py file
 from functions import *
 from utils import *
 import torch.optim as optim
@@ -84,8 +80,7 @@ if __name__ == "__main__":
         if True:
             sampled_epochs.append(x)
             losses_train.append(np.asarray(loss).mean())
-            results_dev, loss_dev = eval_loop(dev_loader, criterion_slots, 
-                                                        model, lang)
+            results_dev, loss_dev = eval_loop(dev_loader, criterion_slots, model, lang)
 
             losses_dev.append(np.asarray(loss_dev).mean())
             
@@ -101,8 +96,7 @@ if __name__ == "__main__":
             if patience <= 0: # Early stopping with patience
                 break # Not nice but it keeps the code clean
 
-    results_test, loss_dev = eval_loop(test_loader, criterion_slots, 
-                                        model, lang)    
+    results_test, loss_dev = eval_loop(test_loader, criterion_slots, model, lang)    
 
     print('Slot F1: ', results_test['f1'])
     print('Slot precision: ', results_test['precision'])

@@ -1,6 +1,3 @@
-# Add the class of your model only
-# Here is where you define the architecture of your model using pytorch
-
 import torch.nn as nn
 import torch
 from sklearn.metrics import precision_recall_fscore_support
@@ -119,98 +116,44 @@ def eval_loop(data, criterion_slots, model, lang):
     # print("report_intent: ", report_intent)
     return results, loss_array
 
-def evaluate(gold_data, pred_data):
+def evaluate(ground_truth, predicted):
     mlb = MultiLabelBinarizer()
 
-    # Transform gold and predicted data into binary arrays
-    gold_labels = mlb.fit_transform(gold_data)
-    pred_labels = mlb.transform(pred_data)
+    # Transform ground_truth and predicted data into binary arrays
+    ground_truth_labels = mlb.fit_transform(ground_truth)
+    pred_labels = mlb.transform(predicted)
 
-    print("\n\n----------------> DATA: ", pred_data[0], "\n (len: ", len(pred_data[0]), ")\n")
-    print("----------------> LABELS:", pred_labels[0],"\n (len: ", len(pred_labels[0]), ")\n")
+    tp = 0          # T
+    tn = 0
+    fp = 0          # O 
+    fn = 0
 
-    print("-"*89)
+    for gt, pred in zip(ground_truth, predicted):
+        if gt == 'T' and gt == pred:
+            tp += 1
+        elif gt == 'O' and gt == pred:
+            tn += 1
+        elif gt == 'T' and gt != pred:
+            fn += 1
+        elif gt == 'O' and gt != pred:
+            fp += 1
+    
+    prec = tp/(tp + fp + SMALL_POSITIVE_CONST)
+    rec = tp/(tp + fn + SMALL_POSITIVE_CONST)
+    f1_ = 2 * (prec * rec) / (prec + rec + SMALL_POSITIVE_CONST)
 
-    print("\n\n----------------> DATA: ", gold_data[0], "\n (len: ", len(gold_data[0]), ")\n")
-    print("----------------> LABELS:", gold_labels[0],"\n (len: ", len(gold_labels[0]), ")\n")
+    print("Precision: ", prec, ", Recall: ", rec, ", F1: ", f1_)
 
-    precision, recall, f1, _ = precision_recall_fscore_support(gold_labels, pred_labels, average='macro')
 
+    # print("\n\n----------------> DATA: ", predicted[0], "\n (len: ", len(predicted[0]), ")\n")
+    # print("----------------> LABELS:", pred_labels[0],"\n (len: ", len(pred_labels[0]), ")\n")
+
+    # print("-"*89)
+
+    # print("\n\n----------------> DATA: ", ground_truth[0], "\n (len: ", len(ground_truth[0]), ")\n")
+    # print("----------------> LABELS:", ground_truth_labels[0],"\n (len: ", len(ground_truth_labels[0]), ")\n")
+
+    precision, recall, f1, _ = precision_recall_fscore_support(ground_truth_labels, pred_labels, average='macro')
+
+    print("Precision: ", precision, ", Recall: ", recall, ", F1: ", f1)
     return {'precision': precision, 'recall': recall, 'f1': f1}
-
-
-def evaluate_(gold_data, pred_data):
-    assert len(gold_data) == len(pred_data)
-    n_sent = len(gold_data)
-
-    # all_gold_slots = []
-    # all_pred_slots = []
-
-    # for i in range(n_sent):
-        
-    #     for j, gold in enumerate(gold_data[i]):
-    #         pred = pred_data[i]
-    #         utterance = gold[0]
-    #         # print("\nutterance: ", utterance)
-    #         gold_slots = gold[1]
-    #         # print(gold_slots)
-    #         pred_slots = pred[j][1]
-
-    #         # for id, tag, utt, in zip(enumerate(gold_slots), utterance):
-    #         #     if tag != 'pad' and utt != 'CLS' and utt != '[SEP]':
-    #         #         all_gold_slots.append(tag)
-    #         #         all_pred_slots.append(pred_slots[id])
-    #     print("GT: ", all_gold_slots[0])
-    #     print("PRED: ", all_pred_slots[0])
-    #     print("\n\n")
-        
-    # Calculate precision, recall, and f1
-    # precision, recall, f1, _ = precision_recall_fscore_support(all_gold_slots, all_pred_slots, average='macro')
-    precision, recall, f1, _ = precision_recall_fscore_support(gold_data, pred_data, average='macro')
-
-    print("precision: ", precision, ", recall: ", recall, ", f1: ", f1)
-    return {'precision' : precision, 'recall' : recall, 'f1' : f1}
-
-
-# def evaluate(gold_ot, pred_ot):
-#     """
-#     evaluate the model performce for the ote task
-#     :param gold_ot: gold standard ote tags
-#     :param pred_ot: predicted ote tags
-#     :return:
-#     """
-#     assert len(gold_ot) == len(pred_ot)
-#     n_samples = len(gold_ot)
-#     # number of true positive, gold standard, predicted opinion targets
-#     n_tp_ot, n_gold_ot, n_pred_ot = 0, 0, 0
-#     for i in range(n_samples):
-#         g_ot = gold_ot[i]
-#         p_ot = pred_ot[i]
-#         g_ot_sequence, p_ot_sequence = tag2ot(ote_tag_sequence=g_ot), tag2ot(ote_tag_sequence=p_ot)
-#         # hit number
-#         n_hit_ot = match_ot(gold_ote_sequence=g_ot_sequence, pred_ote_sequence=p_ot_sequence)
-#         n_tp_ot += n_hit_ot
-#         n_gold_ot += len(g_ot_sequence)
-#         n_pred_ot += len(p_ot_sequence)
-#     # add 0.001 for smoothing
-#     # calculate precision, recall and f1 for ote task
-#     ot_precision = float(n_tp_ot) / float(n_pred_ot + SMALL_POSITIVE_CONST)
-#     ot_recall = float(n_tp_ot) / float(n_gold_ot + SMALL_POSITIVE_CONST)
-#     ot_f1 = 2 * ot_precision * ot_recall / (ot_precision + ot_recall + SMALL_POSITIVE_CONST)
-#     ote_scores = (ot_precision, ot_recall, ot_f1)
-#     return ote_scores
-
-
-# def match_ot(gold_ote_sequence, pred_ote_sequence):
-#     """
-#     calculate the number of correctly predicted opinion target
-#     :param gold_ote_sequence: gold standard opinion target sequence
-#     :param pred_ote_sequence: predicted opinion target sequence
-#     :return: matched number
-#     """
-#     n_hit = 0
-#     for t in pred_ote_sequence:
-#         if t in gold_ote_sequence:
-#             n_hit += 1
-#     return n_hit
-

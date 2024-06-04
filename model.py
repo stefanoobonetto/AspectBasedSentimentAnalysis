@@ -12,16 +12,16 @@ class JointBERT(nn.Module):
 
     def forward(self, utterances, attentions=None, token_type_ids=None):
         
-        # Get the BERT output
+        # get the BERT output
         outputs = self.bert(utterances, attention_mask=attentions, token_type_ids=token_type_ids)
 
-        sequence_output = outputs[0]
-        
-        slots = self.slot_out(sequence_output)
-        
-        slots = slots.permute(0,2,1) 
+        sequence_output = outputs[0]  # extract the sequence output from BERT corresponding to the slots prediction
 
-        return slots
-    
+        slots = self.slot_out(sequence_output)  # pass it through the slot output layer
+
+        slots = slots.permute(0, 2, 1)  # permute the slots tensor to match the expected shape
+
+        return slots  
+        
 
 

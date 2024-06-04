@@ -29,13 +29,14 @@ class Lang():
         self.slot2id = self.lab2id(slots)
         self.id2slot = {v:k for k, v in self.slot2id.items()}
 
-    def lab2id(self, elements, pad=True):                               # creates a dictionary that maps unique id to each label
+    # creates a dictionary that maps unique id to each slot in the vocab
+
+    def lab2id(self, elements, pad=True):                               
         vocab = {}
         if pad:
             vocab['pad'] = PAD_TOKEN
         for elem in elements:
                 vocab[elem] = len(vocab)
-        # vocab['unk'] = len(vocab)
         return vocab
 
 class Slots (data.Dataset):
@@ -54,27 +55,10 @@ class Slots (data.Dataset):
         self.unk = unk
 
         for x in dataset:
-            self.utterances.append("[CLS] " + x['utterance'] + " [SEP]")
-            self.slots.append("O " + x['slots'] + " O")
+            self.utterances.append("[CLS] " + x['utterance'] + " [SEP]")                # add typical BOF adn EOF BERT tags 
+            self.slots.append("O " + x['slots'] + " O")                                 # and their respective slots 
 
         self.utt_ids, self.slot_ids, self.attention_mask, self.token_type_ids = self.mapping_seq(self.utterances, self.slots, tokenizer, lang.slot2id)
-
-
-        # for intent, intent_id in zip(self.intents, self.intent_ids):
-        #     print("Intent: ", str(intent))
-        #     print("Intent[IDs]: ", str(intent_id))
-        #     print("Translated id to token: ", lang.id2intent[intent_id])
-
-        # for i in range(len(self.utterances)):
-        #     print("Phrase:                      ", self.utterances[i])
-        #     print("Phrase[IDs]:                 ", self.utt_ids[i]['input_ids'])
-
-        #     # print("last_id: ", self.utt_ids[i]['input_ids'][-1], " correspond to ", tokenizer.convert_ids_to_tokens([self.utt_ids[i]['input_ids'][-1]]))
-        #     print("Slots:                       ", self.slots[i])
-        #     print("Slots[IDs]:                  ", self.slot_ids[i]['input_ids'])
-        #     print("Intent[IDs]:                 ", self.intent_ids[i]['input_ids'])
-
-        #     print("\n\n")
 
     def __len__(self):
         return len(self.utterances)
@@ -87,41 +71,37 @@ class Slots (data.Dataset):
         sample = {'utterance': utt, 'attention_mask': att, 'token_type_ids': token_type, 'slots': slots}
         return sample
 
-    def mapping_seq(self, utterances, slots, tokenizer, mapper_slot): # Map sequences to number
-        res_utt = []
-        res_slot = []
-        res_attention = []
+    def mapping_seq(self, utterances, slots, tokenizer, mapper_slot):  # map sequences to number
+        res_utt = []  
+        res_slot = []  
+        res_attention = []  
         res_token_type_id = []
 
-        for sequence, slot in zip(utterances, slots):
-            # print("utterance: ", sequence, ",            len: ", len(sequence.split()), "len_bert: ", len(tokenizer(sequence)['input_ids']))
-            tmp_seq = []
-            tmp_slot = []
-            tmp_attention = []
-            tmp_token_type_id = []
+        for sequence, slot in zip(utterances, slots):  # iterate through each sequence and its corresponding slots
+            tmp_seq = []  
+            tmp_slot = [] 
+            tmp_attention = []  
+            tmp_token_type_id = []  
 
-            for word, elem in zip(sequence.split(), slot.split(' ')):
-                tmp_attention.append(1)
-                tmp_token_type_id.append(0)
-                word_tokens = tokenizer(word)
-                word_tokens = word_tokens[1:-1]
+            for word, elem in zip(sequence.split(), slot.split(' ')):  # iterate through each word and its corresponding slot tag
+                tmp_attention.append(1)                         # append 1 to attention mask for the word
+                tmp_token_type_id.append(0)                     # append 0 to token type ids for the word
+                word_tokens = tokenizer(word)                   # tokenize the word with BERT
+                word_tokens = word_tokens[1:-1]                 # remove special tokens ([CLS] and [SEP])
 
-                tmp_seq.extend(word_tokens['input_ids'])
-                tmp_slot.extend([mapper_slot[elem]] + [mapper_slot['pad']] * (len(word_tokens['input_ids']) - 1))
+                tmp_seq.extend(word_tokens['input_ids'])  
+                tmp_slot.extend([mapper_slot[elem]] + [mapper_slot['pad']] * (len(word_tokens['input_ids']) - 1))  # add slot tag and pad for sub-tokens
 
-                for i in range(len(word_tokens['input_ids']) - 1):
-                    tmp_attention.append(0)
-                    tmp_token_type_id.append(0)
+                for i in range(len(word_tokens['input_ids']) - 1):  
+                    tmp_attention.append(0)                         # append 0 to attention mask for sub-tokens
+                    tmp_token_type_id.append(0)  
 
-            res_utt.append(tmp_seq)
-            res_slot.append(tmp_slot)
-            res_attention.append(tmp_attention)
+            res_utt.append(tmp_seq)  
+            res_slot.append(tmp_slot)  
+            res_attention.append(tmp_attention) 
             res_token_type_id.append(tmp_token_type_id)
 
-            # print("utterance: ", tokenizer.tokenize(sequence), ",            len: ", len(tokenizer.tokenize(sequence)), "\nutterance_bert: ", tokenizer.convert_ids_to_tokens(tmp_seq) ,"len_bert: ", len(tmp_seq), "\n\n")
-
-        return res_utt, res_slot, res_attention, res_token_type_id
-
+        return res_utt, res_slot, res_attention, res_token_type_id  # return the results
 
 def collate_fn(data):
     def merge(sequences):
@@ -138,12 +118,9 @@ def collate_fn(data):
         padded_seqs = torch.LongTensor(len(sequences),max_len).fill_(PAD_TOKEN)
         for i, seq in enumerate(sequences):
             end = lengths[i]
-            padded_seqs[i, :end] = seq # We copy each sequence into the matrix
-        # print(padded_seqs)
-        padded_seqs = padded_seqs.detach()  # We remove these tensors from the computational graph
+            padded_seqs[i, :end] = seq                  # copy each sequence into the matrix, substituting 0 with respective ids of the words (if present)
+        padded_seqs = padded_seqs.detach()  
         return padded_seqs, lengths
-    # Sort data by seq lengths
-
 
     data.sort(key=lambda x: len(x['utterance']), reverse=True)
     new_item = {}
@@ -151,15 +128,11 @@ def collate_fn(data):
         new_item[key] = [d[key] for d in data]
 
     # We just need one length for packed pad seq, since len(utt) == len(slots)
-    src_utt, _ = merge(new_item['utterance'])                  # input_ids': utt, 'attention_mask': att, 'token_type_ids': token})
-    attention, _ = merge(new_item['attention_mask'])                  # input_ids': utt, 'attention_mask': att, 'token_type_ids': token})
-    token_type_ids, _ = merge(new_item['token_type_ids'])                  # input_ids': utt, 'attention_mask': att, 'token_type_ids': token})
+    src_utt, _ = merge(new_item['utterance'])                  
+    attention, _ = merge(new_item['attention_mask'])                  
+    token_type_ids, _ = merge(new_item['token_type_ids'])                  
 
     y_slots, y_lengths = merge(new_item["slots"])
-
-    # print("y_slots: ", y_slots)
-    # print("intent: ", new_item["intent"])
-    # intent = pad_sequence(intent, batch_first=True, padding_value=0)        # Pad the sequences (some intents may be composed by more tokens)
 
     src_utt = src_utt.to(device) # We load the Tensor on our selected device
     y_slots = y_slots.to(device)
@@ -174,40 +147,6 @@ def collate_fn(data):
     new_item["slots_len"] = y_lengths
 
     return new_item
-
-
-
-def convert_text_to_json_(input_file, output_file):
-
-    # this function picks up utterances from the left of #### in the txt dataset
-
-    data = []
-
-    with open(input_file, 'r') as file:
-        for line in file:
-            parts = line.strip().split('####')
-            utterance = ""
-            slots = ""
-            if len(parts) == 2:             
-                utterance = parts[0].strip()
-                tags = parts[1].strip().split()
-                new_tags = []
-                for tag in tags:
-                    tag = tag.split('=')[1] if len(tag.split('=')) < 3 else tag.split('=')[2]
-                    new_tags.append(tag)
-                tags = new_tags
-
-                slots = ' '.join([tag if tag.startswith('O') else 'T' for tag in tags])
-
-                entry = {
-                    "utterance": utterance,
-                    "slots": slots
-                }
-
-                data.append(entry)
-
-    with open(output_file, 'w') as outfile:
-        json.dump(data, outfile, indent=4)
 
 def convert_text_to_json(input_file, output_file):
     
@@ -226,14 +165,13 @@ def convert_text_to_json(input_file, output_file):
                 slots = []
 
                 for word_tag in words_and_tags:
-                    # Match the word and the tag using a regular expression
-                    match = re.match(r'(.+)=([^-]+(?:-[^-]+)*)', word_tag)
+                    
+                    match = re.match(r'(.+)=([^-]+(?:-[^-]+)*)', word_tag)                  # match the word and the tag using a regular expression
                     if match:
                         word, tag = match.groups()
                         utterance.append(word)
-                        slots.append('O' if tag.startswith('O') else 'T')
+                        slots.append('O' if tag.startswith('O') else 'T')                   # don't need POS and NEG
 
-                # Join the lists into strings
                 utterance_str = ' '.join(utterance)
                 slots_str = ' '.join(slots)
 
@@ -250,10 +188,3 @@ def convert_text_to_json(input_file, output_file):
     print("Correctly convert ", input_file, " into ", output_file)
 
 
-
-
-# for elem in parts[1].split(" "):
-#                     utterance += elem.split("=")[0]
-#                     utterance += " "
-#                     slots += 'O' if elem.split("=")[len(elem.split("="))-1].startswith('O') else 'T'
-#                     slots += " "

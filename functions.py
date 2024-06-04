@@ -8,15 +8,15 @@ tokenizer = BertTokenizer.from_pretrained("bert-base-uncased") # Download the to
 
 SMALL_POSITIVE_CONST = 1e-6
 
+
+
 def train_loop(data, optimizer, criterion_slots, model, clip=5):
     model.train()
     loss_array = []
     for sample in data:
-        optimizer.zero_grad() # Zeroing the gradient
-        # print(sample['utterances'], sample['attention_mask'], sample['token_type_ids'])
-        slots = model(sample['utterances'], attentions=sample['attention_mask'], token_type_ids=sample['token_type_ids'])
+        optimizer.zero_grad() 
 
-        # print("shape ground_truth: ", sample['y_slots'].shape, ", shape pred: ", slots.shape)
+        slots = model(sample['utterances'], attentions=sample['attention_mask'], token_type_ids=sample['token_type_ids'])
 
         loss = criterion_slots(slots, sample['y_slots'])
 
@@ -24,19 +24,22 @@ def train_loop(data, optimizer, criterion_slots, model, clip=5):
         loss.backward()  
                         
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)  
-        optimizer.step() # Update the weights
+        optimizer.step() 
     return loss_array
 
 
 def eval_loop(data, criterion_slots, model, lang):
+    
     model.eval()
     loss_array = []
     
     ref_slots = []
     hyp_slots = []
 
-    with torch.no_grad(): # It used to avoid the creation of computational graph
+    with torch.no_grad(): 
+
         for sample in data:
+        
             slots = model(sample['utterances'], attentions=sample['attention_mask'], token_type_ids=sample['token_type_ids'])
             
             loss = criterion_slots(slots, sample['y_slots'])
@@ -56,6 +59,7 @@ def eval_loop(data, criterion_slots, model, lang):
                 to_decode = seq[:lenground_truthh].tolist()
                 ref_slots.append([(utterance[id_el], elem) for id_el, elem in enumerate(ground_truth_slots)])
                 tmp_seq = []
+
                 for id_el, elem in enumerate(to_decode):
                     tmp_seq.append((utterance[id_el], lang.id2slot[elem]))
                 hyp_slots.append(tmp_seq)
@@ -64,6 +68,8 @@ def eval_loop(data, criterion_slots, model, lang):
         tmp_hyp = []
         tmp_ref_tot = []
         tmp_hyp_tot = []
+
+        # this part is done to remove pad in the reference slots and in the relative position in the predicted slot  
 
         for ref, hyp in zip(ref_slots, hyp_slots):
             tmp_ref = []
@@ -93,10 +99,6 @@ def eval_loop(data, criterion_slots, model, lang):
         print(hyp_s.difference(ref_s))
         results = {"f1" :0}
 
-    # for elem in report_intent:
-        # print(elem, report_intent[elem], "\n\n")
-    
-    # print("report_intent: ", report_intent)
     return results, loss_array
 
 def evaluate(ground_truth, predicted):
@@ -105,8 +107,9 @@ def evaluate(ground_truth, predicted):
     fp = 0           
     fn = 0
 
-    for gt_sent, pred_sent in zip(ground_truth, predicted):
-        
+    # for each slot predicted of the sentence I compare the prediction with the reference and I calculate TN, FN and FP
+
+    for gt_sent, pred_sent in zip(ground_truth, predicted):        
         for gt, pred in zip(gt_sent, pred_sent):
 
             if gt[1] == 'T' and gt[1] == pred[1]:
@@ -116,27 +119,17 @@ def evaluate(ground_truth, predicted):
             elif gt[1] == 'O' and gt[1] != pred[1]:
                 fp += 1
     
-    print("TP: ", tp, "FP: ", fp, "FN: ", fn)
+    # print("TP: ", tp, "FP: ", fp, "FN: ", fn)
 
-    prec = tp/(tp + fp + SMALL_POSITIVE_CONST)
-    rec = tp/(tp + fn + SMALL_POSITIVE_CONST)
-    # f1_ = 2 * (prec * rec) / (prec + rec + SMALL_POSITIVE_CONST)
-    f1_ = tp/(tp + (fn + fp)/2 + SMALL_POSITIVE_CONST)
+    # the SMALL_POSITIVE_CONST is used to avoid /0
 
-    print("Precision: ", prec, ", Recall: ", rec, ", F1: ", f1_)
+    precision = tp/(tp + fp + SMALL_POSITIVE_CONST)
+    recall = tp/(tp + fn + SMALL_POSITIVE_CONST)
+    f1 = 2 * (precision * recall) / (precision + recall + SMALL_POSITIVE_CONST)
 
-    mlb = MultiLabelBinarizer()
 
-    ground_truth_labels = mlb.fit_transform(ground_truth)
-    pred_labels = mlb.transform(predicted)
+    # uncomment below to see epoch by epoch the statistics
 
-    precision, recall, f1, _ = precision_recall_fscore_support(ground_truth_labels, pred_labels, average='macro')
+    # print("Precision: ", precision, ", Recall: ", recall, ", F1: ", f1)
 
-    print("[sklearn] Precision: ", precision, ", Recall: ", recall, ", F1: ", f1)
-
-    return {"precision" : prec, "recall" : rec, "f1" : f1_}
-
-def evaluate_(ground_truth, predicted):
-
-    # Transform ground_truth and predicted data into binary arrays
-    return {'precision': precision, 'recall': recall, 'f1': f1}
+    return {"precision" : precision, "recall" : recall, "f1" : f1}

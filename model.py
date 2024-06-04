@@ -17,12 +17,10 @@ class JointBERT(nn.Module):
 
         sequence_output = outputs[0]
         
-        # Compute slot logits
         slots = self.slot_out(sequence_output)
         
-        # Slot size: batch_size, seq_len, classes 
-        slots = slots.permute(0,2,1) # We need this for computing the loss
-        # Slot size: batch_size, classes, seq_len
+        slots = slots.permute(0,2,1) 
+
         return slots
     
 

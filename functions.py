@@ -99,45 +99,44 @@ def eval_loop(data, criterion_slots, model, lang):
     # print("report_intent: ", report_intent)
     return results, loss_array
 
-
 def evaluate(ground_truth, predicted):
-    mlb = MultiLabelBinarizer()
-
-    # Transform ground_truth and predicted data into binary arrays
-    ground_truth_labels = mlb.fit_transform(ground_truth)
-    pred_labels = mlb.transform(predicted)
-
-    tp = 0          # T
-    tn = 0
-    fp = 0          # O 
+    
+    tp = 0          # 'T' is considered to be the positive class
+    fp = 0           
     fn = 0
 
-    for gt, pred in zip(ground_truth, predicted):
-        if gt == 'T' and gt == pred:
-            tp += 1
-        elif gt == 'O' and gt == pred:
-            tn += 1
-        elif gt == 'T' and gt != pred:
-            fn += 1
-        elif gt == 'O' and gt != pred:
-            fp += 1
+    for gt_sent, pred_sent in zip(ground_truth, predicted):
+        
+        for gt, pred in zip(gt_sent, pred_sent):
+
+            if gt[1] == 'T' and gt[1] == pred[1]:
+                tp += 1
+            elif gt[1] == 'T' and gt[1] != pred[1]:
+                fn += 1
+            elif gt[1] == 'O' and gt[1] != pred[1]:
+                fp += 1
     
+    print("TP: ", tp, "FP: ", fp, "FN: ", fn)
+
     prec = tp/(tp + fp + SMALL_POSITIVE_CONST)
     rec = tp/(tp + fn + SMALL_POSITIVE_CONST)
-    f1_ = 2 * (prec * rec) / (prec + rec + SMALL_POSITIVE_CONST)
+    # f1_ = 2 * (prec * rec) / (prec + rec + SMALL_POSITIVE_CONST)
+    f1_ = tp/(tp + (fn + fp)/2 + SMALL_POSITIVE_CONST)
 
     print("Precision: ", prec, ", Recall: ", rec, ", F1: ", f1_)
 
+    mlb = MultiLabelBinarizer()
 
-    # print("\n\n----------------> DATA: ", predicted[0], "\n (len: ", len(predicted[0]), ")\n")
-    # print("----------------> LABELS:", pred_labels[0],"\n (len: ", len(pred_labels[0]), ")\n")
-
-    # print("-"*89)
-
-    # print("\n\n----------------> DATA: ", ground_truth[0], "\n (len: ", len(ground_truth[0]), ")\n")
-    # print("----------------> LABELS:", ground_truth_labels[0],"\n (len: ", len(ground_truth_labels[0]), ")\n")
+    ground_truth_labels = mlb.fit_transform(ground_truth)
+    pred_labels = mlb.transform(predicted)
 
     precision, recall, f1, _ = precision_recall_fscore_support(ground_truth_labels, pred_labels, average='macro')
 
-    print("Precision: ", precision, ", Recall: ", recall, ", F1: ", f1)
+    print("[sklearn] Precision: ", precision, ", Recall: ", recall, ", F1: ", f1)
+
+    return {"precision" : prec, "recall" : rec, "f1" : f1_}
+
+def evaluate_(ground_truth, predicted):
+
+    # Transform ground_truth and predicted data into binary arrays
     return {'precision': precision, 'recall': recall, 'f1': f1}

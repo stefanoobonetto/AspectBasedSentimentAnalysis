@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     hid_size = 768
 
-    lr = 0.00001                                   # learning rate
+    lr = 0.001                                   # learning rate
     clip = 5                                       # Clip the gradients
 
     if not os.path.exists(os.path.join('dataset', 'laptop14_train.json')):
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     lang = Lang(slots)
 
-    # print(lang.slot2id)
+    print("\n\n", lang.slot2id,"\n\n")
 
     out_slot = len(lang.slot2id)
 
@@ -85,7 +85,7 @@ if __name__ == "__main__":
             losses_dev.append(np.asarray(loss_dev).mean())
             
             f1 = results_dev['f1']
-            print(f1)
+            # print(f1)
             # For decreasing the patience you can also use the average between slot f1 and intent accuracy
             if f1 > best_f1:
                 best_f1 = f1

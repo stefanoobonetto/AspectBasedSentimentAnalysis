@@ -1,19 +1,18 @@
-from functions import *
-from utils import *
-import torch.optim as optim
-import torch.nn as nn
 import torch
-from sklearn.model_selection import train_test_split
-from model import JointBERT
-import matplotlib.pyplot as plt
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 import random
 import numpy as np
 import os
-from torch.utils.data import DataLoader
 import json
 
-from transformers import BertTokenizer, BertConfig
+from functions import *
+from utils import *
+from model import JointBERT
+
+from transformers import BertTokenizer
 
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'

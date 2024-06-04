@@ -3,7 +3,6 @@
 import torch
 import json
 import re
-from collections import Counter
 import torch.utils.data as data
 
 PAD_TOKEN = 0
@@ -101,7 +100,7 @@ class Slots (data.Dataset):
             res_attention.append(tmp_attention) 
             res_token_type_id.append(tmp_token_type_id)
 
-        return res_utt, res_slot, res_attention, res_token_type_id  # return the results
+        return res_utt, res_slot, res_attention, res_token_type_id  
 
 def collate_fn(data):
     def merge(sequences):
@@ -134,7 +133,7 @@ def collate_fn(data):
 
     y_slots, y_lengths = merge(new_item["slots"])
 
-    src_utt = src_utt.to(device) # We load the Tensor on our selected device
+    src_utt = src_utt.to(device) 
     y_slots = y_slots.to(device)
     attention = attention.to(device)
     token_type_ids = token_type_ids.to(device)

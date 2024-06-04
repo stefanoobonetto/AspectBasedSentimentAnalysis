@@ -19,8 +19,9 @@ class JointBERT(nn.Module):
 
         slots = self.slot_out(sequence_output)  # pass it through the slot output layer
 
+        # Slot size: batch_size, seq_len, classes 
         slots = slots.permute(0, 2, 1)  # permute the slots tensor to match the expected shape
-
+        # Slot size: batch_size, classes, seq_len
         return slots  
         
 

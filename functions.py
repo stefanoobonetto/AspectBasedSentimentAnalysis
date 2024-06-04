@@ -1,14 +1,10 @@
-import torch.nn as nn
 import torch
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.preprocessing import MultiLabelBinarizer
+from torch.nn.utils import clip_grad_norm_
 
 from transformers import BertTokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased") # Download the tokenizer
 
 SMALL_POSITIVE_CONST = 1e-6
-
-
 
 def train_loop(data, optimizer, criterion_slots, model, clip=5):
     model.train()

@@ -5,6 +5,6 @@ This work focuses on Aspect-Based Sentiment Analysis (ABSA), specifically target
 The dataset utilized is the Laptop partition of SemEval2014 task 4, providing annotated laptop reviews for training and evaluation. By fine-tuning the language model on this dataset and adopting a span-based extraction approach inspired by Hu et al. (2019), the model aims to accurately identify aspect terms. Evaluation metrics, including F1 score, Precision, and Recall, are utilized to assess the model's performance.
 
 
-## Contact me
+## Contacts
 
-Stefano Bonetto: [contact me on LinkedIn](https://www.linkedin.com/in/stefano-bonetto)<br>
+Stefano Bonetto: [contact me on LinkedIn](https://www.linkedin.com/in/stefano-bonetto)

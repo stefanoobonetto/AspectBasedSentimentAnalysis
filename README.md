@@ -7,4 +7,4 @@ The dataset utilized is the Laptop partition of SemEval2014 task 4, providing an
 
 ## Contact me
 
-Stefano Bonetto: [contact me on LinkedIn](www.linkedin.com/in/stefano-bonetto)<br>
+Stefano Bonetto: [contact me on LinkedIn](https://www.linkedin.com/in/stefano-bonetto)<br>
